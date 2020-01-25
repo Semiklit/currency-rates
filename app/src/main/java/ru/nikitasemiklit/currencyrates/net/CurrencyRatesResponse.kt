@@ -1,4 +1,4 @@
-package ru.nikitasemiklit.currencyrates.model
+package ru.nikitasemiklit.currencyrates.net
 
 import com.google.gson.annotations.SerializedName
 
