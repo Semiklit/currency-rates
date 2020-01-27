@@ -9,6 +9,7 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 import ru.nikitasemiklit.currencyrates.App
+import ru.nikitasemiklit.currencyrates.R
 import ru.nikitasemiklit.currencyrates.dataBase.RatesDataBase
 import ru.nikitasemiklit.currencyrates.dataBase.SingleCurrencyRate
 import ru.nikitasemiklit.currencyrates.net.Client
@@ -17,37 +18,46 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class RatesViewModel : ViewModel() {
+    private val computationScale = 4
+    private val baseCurrencyRate = "1"
     private val dataBase: RatesDataBase = Room.databaseBuilder(
         App.instance,
         RatesDataBase::class.java,
         "ratesDataBase"
     ).build()
     private val subscriptions = ArrayList<Disposable>()
+    private var computationSubscription: Disposable? = null
 
     val baseCurrencies = MutableLiveData<List<String>>()
     val targetCurrencies = MutableLiveData<List<String>>()
     val targetValue = MutableLiveData<String>()
 
     init {
-        subscriptions.add(Client.getRatesForCurrency().observeOn(Schedulers.io()).subscribe(
+        subscriptions.add(
+            Client.getRatesForCurrency(App.instance.resources.getString(R.string.base_currency)).observeOn(
+                Schedulers.io()
+            ).subscribe(
             { value ->
                 dataBase.currencyRatesDao()
                 dataBase.currencyRatesDao().insert(value.rates.map { entry ->
                     SingleCurrencyRate(entry.key, entry.value)
-                }.plus(SingleCurrencyRate(value.baseCurrency, "1")))
+                }.plus(SingleCurrencyRate(value.baseCurrency, baseCurrencyRate)))
                 update()
             },
-            { error -> error.printStackTrace() }
+                { error ->
+                    error.printStackTrace()
+                    update()
+                }
         )
         )
     }
 
-    var baseCurrency: String = "EUR"
+    var baseCurrency: String = App.instance.resources.getString(R.string.base_currency)
         set(value) {
             field = value
             count()
         }
-    var targetCurrency: String = "EUR"
+    var targetCurrency: String = App.instance.resources.getString(R.string.base_currency)
         set(value) {
             field = value
             count()
@@ -62,7 +72,10 @@ class RatesViewModel : ViewModel() {
         if (userInputValue.isEmpty()) {
             targetValue.value = userInputValue
         } else {
-            subscriptions.add(
+            if (computationSubscription != null && !computationSubscription!!.isDisposed) {
+                computationSubscription?.dispose()
+            }
+            computationSubscription =
                 Single.zip(
                     dataBase.currencyRatesDao().getRateForCurrency(baseCurrency),
                     dataBase.currencyRatesDao().getRateForCurrency(targetCurrency),
@@ -71,8 +84,13 @@ class RatesViewModel : ViewModel() {
                         val baseRate = BigDecimal(t1)
                         val targetRate = BigDecimal(t2)
                         val scale = Currency.getInstance(targetCurrency).defaultFractionDigits
-                        valueToConvert.divide(baseRate, scale, BigDecimal.ROUND_HALF_UP)
-                            .multiply(targetRate).toString()
+                        val result = valueToConvert.divide(
+                            baseRate,
+                            computationScale,
+                            BigDecimal.ROUND_HALF_UP
+                        )
+                            .multiply(targetRate)
+                        result.setScale(scale, BigDecimal.ROUND_HALF_UP).toString()
                     }
                 )
                     .subscribeOn(Schedulers.computation())
@@ -82,7 +100,6 @@ class RatesViewModel : ViewModel() {
                     }, { error ->
                         error.printStackTrace()
                     })
-            )
         }
     }
 

@@ -1,4 +1,4 @@
-package ru.nikitasemiklit.currencyrates
+package ru.nikitasemiklit.currencyrates.view
 
 import android.os.Bundle
 import android.view.View
@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.observe
+import ru.nikitasemiklit.currencyrates.R
 import ru.nikitasemiklit.currencyrates.model.RatesViewModel
 
 class MainActivity : AppCompatActivity() {

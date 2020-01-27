@@ -1,6 +1,5 @@
 package ru.nikitasemiklit.currencyrates.net
 
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -10,6 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object Client {
     val client: ExchangeRatesApi
+    private val endpoint = "https://api.exchangeratesapi.io/"
 
     init {
         val loggingInterceptor = HttpLoggingInterceptor()
@@ -19,7 +19,7 @@ object Client {
             .build()
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://api.exchangeratesapi.io/")
+            .baseUrl(endpoint)
             .addConverterFactory(GsonConverterFactory.create())
             .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .client(okHttpClient)
@@ -28,6 +28,6 @@ object Client {
         client = retrofit.create(ExchangeRatesApi::class.java)
     }
 
-    fun getRatesForCurrency() = client.getRatesForBaseCurrency()
+    fun getRatesForCurrency(baseCurrency: String) = client.getRatesForBaseCurrency(baseCurrency)
         .subscribeOn(Schedulers.io())
 }
