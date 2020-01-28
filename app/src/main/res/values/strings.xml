@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Currency rates</string>
+    <string name="base_currency" translatable="false">EUR</string>
 </resources>
